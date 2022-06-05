@@ -1,0 +1,562 @@
+---
+title: "Housing Price Under the Influence of Covid-19 Pandemic"
+author: "Mengqin Cai"
+date: "11/25/2021"
+output: 
+  html_document:
+    theme: cerulean
+    highlight: pygments
+    toc: true
+  pdf_document:
+    extra_dependencies: ["geometry", "multicol", "multirow", "xcolor"]
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, echo=FALSE,include=FALSE}
+library(skimr)
+library(caret)
+library(tidyverse)
+library(ggplot2)
+library(DataExplorer)
+library(VIM)
+library(Amelia)
+library(tidyr)
+library(GGally)
+library(zoo)
+library(patchwork)
+library(randomForest)
+library(e1071)
+library(elasticnet)
+library(forecast)
+library(rpart.plot)
+library(rpart)
+
+```
+
+# ABSTRACT
+
+
+Housing price is always a critical index for economic recovery. I investigated whether Covid 19 pandemic affected the real estate prices of residential dwellings across New York City and built a model to predict the sale price of the house given certain properties of the house. In this project, I explored, analyzed, and modeled a data set containing information on sales records of family residential dwellings. My house price prediction model focus on the Structural characteristics of the house and also include a Covid 19 dummy value and mortgage rate which are indirectly affected by the pandemic.  My methodology includes data preparation, data visualization and analysis, Model Prediction, and forecasting.  My study revealed a positive correlation coefficient between the Sale price and Covid 19 dummy and a negative correlation coefficient between the sale price and mortgage rate. For the model prediction, the support vector machine was selected for its best performance compared to other models. At the same time, ARIMA fits the training data better than the holt-winters’ additive method and ETS.
+
+Key Words:Housing Price, Pandemic, Regression, Decision Tree, SVM
+
+# INTRODUCTION
+
+The recent outbreak of COVID-19 has brought attention to everyone with its global economic slowdown. Many researchers study the economic effects of the pandemic by studying its house price. Marc Francke and his colleagues studied the outbreak of plague in Amsterdam during the 16th and 17th centuries and the outbreaks of cholera in Paris during 1832 and 1849. According to their findings, all house prices on average dropped by six percent during the pandemic. Grace Wong also has the same finding when she examines the Hong Kong house price during the 2003 SARS (Severe Acute Respiratory Syndrome) epidemic. The average price decline is 1-3 percent for the average SARS-affected estate, and 1.6 percent for all estates. [1]
+
+The objective of this project is to build a model to predict the sale price given certain properties of the house. My price prediction model focuses on the structural characteristics from size of the house,  numbers of rooms, floor area, and Age of the building, etc. At the same time, I will quantify the influence of pandemics by bringing in the factor of mortgage rates to answer the question of how the pandemic impacts housing prices.  
+
+
+# LITERATURE REVIEW
+
+MODELS TO PREDICT THE HOUSE PRICE
+
+The most popular house prediction model is hedonic price model, which encompass both quantitative and qualitative attributes, such as locational, Structural, and neighborhood. Ridker and Henning applied the hedonic price approach in residential properties for the first time in 1967.Freeman provided a review of the theoretical basis and the assumptions required in order to use hedonic price equations derived from property value data to obtain measures of the prices and the inverse demand functions for environmental amenities such as air quality. [2] Chin, T. L. and Chau, K. W. reviewed the literature on the application of the hedonic price model. Typically, housing attributes are classified into locational attributes, structural attributes, and neighborhood attributes. [3]
+
+Even though the hedonic price model has been widely recognized, issues such as model specification procedures, multicollinearity, independent variable interactions, heteroscedasticity, non-linearity and outlier data points can seriously hinder the performance of hedonic price model in real estate valuations. [4] Limsombunchai selected a sample of 200 housing information in the Christchurch area in New Zealand to compare the predictive power of the hedonic price model with an artificial neural network model on house price prediction.As Limsombunchai point out in his paper, the hedonic price models do not outperform neural network models.
+
+Basically, hedonic price model doesn’t consider the impact of other economic factors, such as interest rates. Reichert(1990) has found that regional housing prices react uniformly to certain national economic factors, such as mortgage rates. On the other hand, local factors such as population shifts, employment, and income trends often have a unique impact on housing prices.[5] Himmelberg, C., Mayer, C., and Sinai, T. used six components representing both costs and offsetting benefits. The first component is the cost of foregone interest that the homeowner could have earned by investing in something other than a house. This one-year cost is calculated as the price of housing Pt times the risk-free interest rate rt. The real interest rate is a key determinant of the user cost of housing. [6]  
+
+Different from the hedonic price model, Sims(1980) adopted a small vector autoregressive (VAR) model in his research. The growth of real national income and changes in stock market wealth are two of the key determinants of house values included in the VAR.[7] Sutton expanded Sims’ model and focused more on the shocks to real interest rates. Based on the data of six developed counties, he found out that a 100 basis point decrease in the real short-term interest rate leads to an increase in house prices in the range of ½–1½ percentage points over four quarters.
+
+
+RELATED RESEARCH
+
+Covid 19 is a global crisis and attract many researchers to evaluate the pandemic impact of the house price. 
+
+Bing Bing Wang analyzed the Covid-19 effects on the areas of Houston, Santa Clara, Honolulu, Irvine, and Des Moines in the US, which vary in the economic features and the implementation of stay home orders. The author compared the medium sale price and transaction volume of different cities by their population growth, unemployment rate, income, etc. As the five-point estimates figures show, the author reached a conclusion that after the outbreak, Honolulu is the only place that experienced declines in house prices. For the other four areas, which see increases in house prices. [8]
+
+Janice and Madhavi used Hedonic Regression Model techniques for analyzing its statistical technique for investigating and modeling the relationship between variables. After compare with different machine algorithms, the author found out that regression analysis is the best technique for prediction of prices for housing in the Philippines during the Pandemic.  [9]
+
+Yunhui Zhao presented eight stylized facts on the US housing market in the COVID-19 era used a variety of approaches, including Descriptive analysis, Zip code-level panel regressions, Structural break models, Nadaraya-Watson kernel nonparametric model, etc. The aggregate result are:1) the growth rate of median housing price during the four months (April- August 2020) has accelerated faster than any four-month period in the lead-up to the 2007-09 global financial crisis. 2) The increase in housing demand in response to lower mortgage interest rates displays a structural break since March 2020. [10]
+
+
+# METHODOLOGY
+
+To estimate the Covid-19 impact on NYC property sale price and transactions, I will apply the widely use hedonic models to my research. As I mentioned in the introduction, my model will focus on structural characteristics such as the number of rooms, floor area, and age of the building, etc.
+
+• DATA PREPARATION
+
+My Data Preprocess focuses on the missing values, zero variance columns, outlier, consolidation, transformation, and data splitting. For the consolidation, the mortgage rate will be consolidated with the original data set and a covid 19 dummy variable will also be created to evaluate the pandemic influence on the housing price.
+
+• EXPLORATORY ANALYSIS AND DATA VISUALIZATION
+
+I examine the correlation rate of different variables and focus on the price and its correlation with other variables, such as mortgage rate and Covid 19 dummy. At the same time, to present the characteristic of different variables focus on the number of house sales, sale price by boroughs, and comparison of mortgage rate and the housing price. To better analyze our data, classical multiplicative decomposition will be applied to the average of the sales price. I also create a price app for the interested user to check the historical sales data by borough, neighbor, and building class category.
+
+• PREDICT MODELING
+
+Data are ready to be trained after all the manipulation and cleaning. I mainly use three prediction models, Linear regression, Decision Tree, and Support Vector Machine. I will examine the models by comparing their performance sore of R square, RMSE, and MAE.
+
+• MODEL FORECASTING
+
+Various Time Series Model techniques are useful to forecast the house price in the following years. I use Holt-winter’s Simple Exponential smoothing, ETS, and auto ARIMA models to forecast the sales price and observe their forecasting graph by estimating the price range. 
+
+
+
+# EXPERIMENTATION AND RESULTS
+
+## LOAD DATA AND EXPLORATION
+  
+The sale reports include all the NYC sale data from 2019 to October 2021. My project focus on the residential house and all the commercial/land sales data will be filtered out on purpose. The data set contains 19 columns sales related information, including numerical and categorical variables. According to the hedonic price model, locational attributes, structural attributes, and neighborhood attributes all contribute to the house price under different circumstances. The NYC rolling sale report from NYC open data contains most of the structural attributes I need for the hedonic price model, such as boroughs, neighborhood, building class, gross square feet, year built, etc.Below is a short description of the two data sets:
+
+• Detailed Annual Sale Report displays yearly sale information of New York City. This file has information such as neighborhood, building type, square footage, address, zip code, year build, sales price, sale date, and other data.
+
+• 30 Years Fixed Mortgage Rate data is provided by Freddie Mac to list the 30 years fixed mortgage rate by month from April 1, 1971 to November 1, 2021
+
+
+```{r,echo=FALSE}
+## LOAD DATA AND EXPLORATION
+house<-read.csv("https://raw.githubusercontent.com/DaisyCai2019/NewData/master/Detailed%20Annual%20Sale%20Report(2021-2019).csv")
+mortgage<-read.csv("https://raw.githubusercontent.com/DaisyCai2019/NewData/master/30-year-fixed-mortgage-rate-chart.csv")
+```
+
+```{r, echo=FALSE}
+skim(house)
+```
+
+
+
+## DATA PREPARATION
+
+My Data Preprocess focuses on the missing values, zero variance columns, outlier, consolidation, transformation, and data splitting into training and test data. At the same time, the data set has many outliers because some areas might have high price sales. To make my model stabilize and predict the normal residential house sales, I removed some extreme outliers and set up a Covid 19 Dummy variable. To clarify whether the transactions happened during the pandemic or not,  I used 1 to represent the pandemic and 0 to represent the normal period. I also normalized my dataset because of the price scale or other variables using different measurements.
+
+
+### Fix Datatypes
+
+As the data exploration table shows, the detailed sales report contains 7 categorical variables and 12 numeric variables. For my observations, some columns were not correctly formatted, such as zip code, sale date, etc. This section formats those variables and makes them ready for modeling. The variable sale price has many 0 and small amount sales prices because they might indicate a transfer of ownership without a cash consideration. For example, transfer ownership from parent to children, so I only select sale price more than $200, 000.
+
+```{r, echo=FALSE}
+### Fix Datatypes
+# Filter out the price less than $200,000
+house<-house %>%
+            filter(SALE.PRICE>=200000)
+
+house_clean<-house
+house_clean$LAND..SQUARE.FEET<-as.numeric(house_clean$LAND..SQUARE.FEET)
+house_clean$GROSS..SQUARE.FEET<-as.numeric(house_clean$GROSS..SQUARE.FEET)
+house_clean$BUILDING.CLASS.CATEGORY<-as.factor(house_clean$BUILDING.CLASS.CATEGORY)
+house_clean$SALE.DATE<-as.Date(house_clean$SALE.DATE,format = "%m/%d/20%y")
+house_clean$ï..BOROUGH<-as.factor(gsub("1", "Manhattan", house_clean$ï..BOROUGH))
+house_clean$ï..BOROUGH<-as.factor(gsub("2", "Bronx", house_clean$ï..BOROUGH))
+house_clean$ï..BOROUGH<-as.factor(gsub("3", "Brooklyn", house_clean$ï..BOROUGH))
+house_clean$ï..BOROUGH<-as.factor(gsub("4", "Queens", house_clean$ï..BOROUGH))
+house_clean$ï..BOROUGH<-as.factor(gsub("5", "StatenIsland", house_clean$ï..BOROUGH))
+house_clean$ZIP.CODE<-as.character(house_clean$ZIP.CODE)
+
+```
+
+
+### Missing Values
+
+I use kNN imputation to help replace many of the missing values. With the KNN method, a categorical missing value is imputed by looking at other records with similar features. Once k similar records are found, they are used to infer the missing value. Note that imputing can inherently introduce bias and there is a trade-off between losing information versus bias when trying to fill in holes.
+```{r, echo=FALSE}
+### Missing Values
+plot_missing(house_clean)
+set.seed(123)
+house_clean2<-kNN(house_clean) 
+house_clean2<-house_clean2%>%
+   select('ï..BOROUGH':'SALE.DATE')
+```
+
+
+### Check Zero Variance
+
+A zero variance indicates that all values within a set of numbers are identical. There are three variables that have zero Variance. They are tax class at present, commercial units, and Tax class at time of sale. To reduce the dimensionality of the data, I apply the low variance filter and throw them away.
+
+```{r, echo=FALSE}
+### Check Zero Variance
+zeroVar <- nearZeroVar(house_clean2)
+zeroVar
+house_clean2<-house_clean2[,-zeroVar]
+
+```
+
+### Check Outliers
+
+There are many outliers because of some luxury house sales in the city. To make our model stabilize and predict the normal residential house sales, I remove some extreme outliers. 
+
+Most of the time, The interquartile range is the central 50% or the area between the 75th and the 25th percentile of a distribution. A point is an outlier if it is above the 75th or below the 25th percentile by a factor of 1.5 times the IQR. As I selected the house price which is more than $200,000, so I ignored the price below the 25th percentile. Considering great data loss above the 75th percentile, I use the 99th percentile and only remove the extreme outliers.
+
+```{r, echo=FALSE}
+### Check Outliers
+boxplot(house_clean2$SALE.PRICE)
+Q3 <- quantile(house_clean2$SALE.PRICE, .99)
+Q3 <- quantile(house_clean2$SALE.PRICE, .99)
+IQR <- IQR(house_clean2$SALE.PRICE)
+house_clean2 <- subset(house_clean2, house_clean2$SALE.PRICE< (Q3 + 1.5*IQR))
+
+```
+
+
+### Data Consolidation
+
+After the detailed sale report data is cleaned, I am ready to consolidate the mortgage rate report with the sales data.  As I briefly mentioned before, the mortgage rate is a monthly rate, but my sales date has the exact sale day when the house closed. To combine two reports, I extract the year and month information from the sales report and join it with the date column of mortgage rate.  At the same time, a Covid 19 dummy variable is created for the observation of pandemic impact. I use 1 to represent sales under pandemic and 0 to represent transactions before the pandemic. Since the first case of the COVID-19 pandemic in New York City was confirmed on March 1, 2020, I use 03/01/2020 as the first day of the Covid 19 dummy.
+
+
+```{r, echo=FALSE}
+### Data Consolidation
+# Add a 'Date' column which only include month and year
+
+house_clean2<-house_clean2 %>%
+             mutate(Date=format(house_clean2$SALE.DATE,"%m/20%y"))
+
+#Format mortgage data
+mortgage$ï..date <- as.Date(mortgage$ï..date,format = "%m/%d/20%y")
+mortgage<-mortgage %>%
+ mutate(Date=format(mortgage$ï..date,"%m/20%y"))
+names(mortgage)[2] <- "MortgageRate"
+
+#Join two dataset by Date
+house_combine<-left_join(house_clean2,mortgage,by="Date")
+
+house_combine<-house_combine%>%
+             select(c("ï..BOROUGH":"SALE.DATE","ï..date","MortgageRate"))
+
+house_combine<-house_combine %>%
+             mutate(CovidDummy=ifelse(SALE.DATE>"2020-03-01" & SALE.DATE< "2021-12-31",1,0 ))
+             
+            
+head(house_combine)
+
+```
+
+### Data Scale and Normalization
+
+As the last step of data transformation, I scale and normalize the data here. Considering the wide range of sale prices, I scale the entire data range so that the data has a range from 0 to 1. Using preprocess() will also normalize my data and set it ready for modeling
+
+```{r, echo=FALSE}
+### Data Scale and Normalization
+myTrans <- preProcess(house_combine, method=c("BoxCox","center", "scale"))
+houseTrans<- predict(myTrans,house_combine)
+
+```
+
+
+### Splitting into a Training/Test set
+
+After all the transformation and cleaning, my data can be used for modeling. It is common to randomly separate the original dataset into 80% / 20%, with 80% used for training.
+
+```{r, echo=FALSE}
+### Splitting into a Training/Test set
+df_index<-createDataPartition(houseTrans$SALE.PRICE,p=0.8,list=FALSE)
+df_train<-houseTrans[df_index,]
+df_test<-houseTrans[-df_index,]
+```
+
+
+
+## EXPLORATORY ANLYSIS AND DATA VISUALIZATION
+
+To evaluate the pandemic influence of housing prices, we can look at some critical graphs and observe their trends.
+
+```{r, echo=FALSE}
+
+#Plot 1 Correlation Plot
+
+df_col<-house_combine[sapply(house_combine,is.numeric)]
+cor <- data.frame(cor(df_col))
+cor <- cor[order(cor$SALE.PRICE, decreasing=T),]
+head(cor)
+ggcorr(df_col,label = T,label_round = 2 )+ggtitle('Plot1:Correlation Plot')
+
+```
+
+Plot 1: Correlation Plot
+
+The first graph displays the plot of the correlation matrix. Correlation tables demonstrate a linear relationship between each numeric variable. When we quantify the influence of pandemics, the correlation table is critical to the research. From the table, we can easily detect -0.06298 for the correlation coefficient of the sale price and mortgage rate, which means that any increases in mortgage rate will associate with a decrease in the sale price, vice versa. For the Covid 19 Dummy, the correlation coefficient is 0.06676, which means that Covid 19 pandemic has a positive impact on the sale price.
+
+
+```{r,warning=FALSE,echo=FALSE}
+#Plot2:Number of Housing Sales(2019-2021)
+
+ggplot(house_combine, aes(x=house_combine$ï..BOROUGH,fill=house_combine$ï..BOROUGH))+geom_bar()+xlab("BOROUGH")+ylab("Count")+ggtitle("Plot2:Number of Housing Sales(2019-2021)")+scale_fill_discrete(name = "BOROUGHS")
+
+```
+
+Plot2: Number of Housing Sales(2019-2021)
+
+
+Plot 2 shows the number of housing sales across the 5 boroughs of New York City. Our data only focus on the one, two, or three-family houses. Manhattan has many condos, so the total house sales number is lower than the other four boroughs. For the past three years, the sale number is not been equally distributed, and Queens has the highest sales number among the five boroughs.
+
+
+```{r, echo=FALSE}
+#Plot3:Sale Price by borough
+
+ggplot(house_combine,aes(x=SALE.DATE,y=SALE.PRICE,color=BUILDING.CLASS.CATEGORY))+geom_line()+facet_wrap(~ï..BOROUGH)+ggtitle("Plot3:Sale Price by borough")
+
+```
+
+
+From the graph, we can have a general idea of the sale price of each borough. According to the graph, most of the house price is under 2 million, and Brooklyn and Manhattan have many houses that exceed 3 million.
+ 
+
+```{r, echo=FALSE}
+#Plot4:Mortgage Rate By Month
+mortgage2<-mortgage %>%
+           subset(ï..date>"2019-01-01")
+p1<-ggplot(mortgage2,aes(x=ï..date,y=MortgageRate))+geom_line(colour = "violet",size = 1.5)+ylab("Rate")+xlab("Year")+ggtitle("Plot4:Mortgage Rate By Month")
+
+
+#Plot5:Average Housing Price by Month
+dfSlice<-house_combine %>%
+           select(c("SALE.PRICE","MortgageRate","ï..date"))%>%
+           group_by(ï..date)%>%
+           dplyr::summarise(AvePrice=mean(SALE.PRICE))
+dfSlice
+
+p2<-ggplot(dfSlice,aes(x=ï..date,y=AvePrice))+geom_line(colour = "violet",size = 1.5)+ylab("Price")+xlab("Year")+ggtitle("Plot5:Average Housing Price by Month")
+
+p1+p2
+```
+
+Plot 4: Comparison of mortgage rate and housing price
+
+Plot 5: Average Housing Price by Month
+
+The relationship between mortgage rate and housing price is critical. To visualize the trend of these two numbers, I discover some interesting facts. 
+
+•	30 years fixed mortgage rate continues to decrease from the beginning of 2019 until the end of 2020. The lowest mortgage rate is 2.67, which happened in December 2020, and then bounced back a little bit to around 3% in 2021. 
+
+•	When we look at the house price trend on the right, we can detect two lower points around July 2019 and August 2020.
+
+•	An almost mirror image for the mortgage rate and sale price is detected. Mortgage rates decrease sharply in 2019 and 2020, then keep an average of 3% in 2021, but housing prices skyrocketed in 2021 with a 12% increase compared to the previous year. 
+
+
+
+```{r,echo=FALSE}
+#Plot 6: Classical multiplicative decomposition of Monthly Housing Price
+house_ts<- ts(dfSlice[,"AvePrice"],start=2019,frequency=12)
+house_ts %>% 
+  decompose(type="multiplicative")%>% 
+  autoplot()+ggtitle('Plot 6: Classical multiplicative decomposition of Monthly Housing Price')
+
+ggseasonplot(house_ts)+ggtitle("Plot 7:Seaonal trend Analysis")
+
+```
+
+To better analyze my data, I apply the classical multiplicative decomposition to housing prices. Plot 6 shows a strong seasonality with an upward trend. For the seasonality graph, we can easily detect a high price in May and June. When we check the remainder, we do observe some low-price sales in the third and four quarters, which may cause the housing price drop after the peak. The blue line in the seasonal trend analysis graph represents the sale price of 2021. Undoubtedly, the housing price in 2021 doesn’t follow the previous seasonal trend and keeps growing for the whole year. Due to the lower-than-before mortgage rate, we expect the housing price to continue increasing in 2020 until the mortgage rate is adjusted
+
+
+### Shiny APP
+
+To better check the sales data, I also create a house APP for those interested users to check the historical housing price based on the borough, neighborhood and their buying needs for one/two/three-family houses.
+
+https://daisycai.shinyapps.io/HousePrediction/
+
+
+## BUILD MODELS
+
+After the data has been cleaned and analyzed, I am ready to create models to predict the sale price. In this section, a series of models will be built, and model performance numbers will be calculated. For each model, a summary and brief analysis are provided. The model I used is as follows:
+
+
+### Linear Regression
+
+The regression model provides a function that describes the relationship between one or more independent variables and a target variable. As I mentioned in the literature review, non-linearity and outlier data points can seriously hinder the performance of the hedonic price model. To better fit the hedonic price model, I should consider Regression Model for the data fitting.
+
+To build the linear model, we have all the data transformed, normalized, and scaled in the previous preprocess. At the same time, extreme points were also removed from the data set, so we can safely apply the Regression Model here. Due to the complicated levels of some categorical variables, I only choose those important variables related to the sale price.
+
+Linear regression includes forward and backward selection, and I will choose the backward selection and remove the variable Total Units and then Covid 19 dummy based on their P-value. After that, the model summary shows a P-value of the mortgage rate at around 0.026925.
+
+```{r, echo=FALSE}
+# Original linear Regression
+house_lm<-lm(SALE.PRICE~ï..BOROUGH+BUILDING.CLASS.CATEGORY+BLOCK+RESIDENTIAL.UNITS+TOTAL..UNITS+LAND..SQUARE.FEET+GROSS..SQUARE.FEET+YEAR.BUILT+SALE.DATE+MortgageRate+CovidDummy,data=df_train)
+
+#Remove Total Units and Covid-19 Dummy
+house_lm2<-lm(SALE.PRICE~ï..BOROUGH+BUILDING.CLASS.CATEGORY+BLOCK+RESIDENTIAL.UNITS+LAND..SQUARE.FEET+GROSS..SQUARE.FEET+YEAR.BUILT+SALE.DATE+MortgageRate,data=df_train)
+summary(house_lm2)
+```
+
+Inference from the model:
+
+•	When I apply the linear model against the test data set, I notice that RMSE is a little bit higher than I expect because I might exclude some categorical variables, such as neighborhood.
+
+•	 Covid 19 dummy is removed from the model because of its low P-value, which means Covid 19 is not an important variable that affects the sale price. We might need to research the correlation of the Covid 19 pandemic and mortgage rate, which include in the model with a 0.026925 P-value.
+
+
+
+```{r, echo=FALSE}
+#Test data set
+lm_pre<-predict(house_lm2,df_test)
+
+lmdf<-data.frame(
+  R2 = R2(lm_pre, df_test$SALE.PRICE),
+  RMSE = RMSE(lm_pre, df_test$SALE.PRICE),
+  MAE = MAE(lm_pre, df_test$SALE.PRICE)
+)
+lmdf
+
+```
+
+
+
+### Decision Tree
+
+The decision tree is a popular model for classification and prediction. It mimics the decision-making process and is like a tree structure, where each internal node denotes a test on an attribute, each branch represents an outcome of the test, and each leaf node (terminal node) holds a class label.
+
+I will try to train the data with our decision tree model and use the pruning method to remove the branches that make use of features having low importance. To achieve higher accuracy, I’ll use the prune() function in the rpart package to examine a predicted optimal tree size.  According to the tree size table, row 6 (a tree with size 6) gives out the minimum xerror,  0.6042544, so we will choose size 6.
+
+```{r, echo=FALSE}
+# Decision Tree
+tree <- rpart(SALE.PRICE ~ï..BOROUGH+BUILDING.CLASS.CATEGORY+BLOCK+LOT+RESIDENTIAL.UNITS+LAND..SQUARE.FEET+GROSS..SQUARE.FEET+YEAR.BUILT+MortgageRate+CovidDummy, data = df_train)
+
+plotcp(tree)
+tree$cptable
+tree.pruned <- prune(tree, cp=0.01000000)
+
+rpart.plot(tree.pruned, 
+           extra = 100, 
+           main = "Decision Tree")
+
+varImp(tree.pruned)
+```
+
+After we prune the tree, we can finally visualize it by observing the nodes. The variable importance table indicates that the top 3 most important variables are block, gross square feet, and borough, which have the important score of 0.616, 0.508, and 0.484, respectively. For Covid 19 dummy and mortgage rate, their score is 0 according to the decision tree model. 
+
+ 
+```{r, echo=FALSE}
+# Test decision tree
+tree_pred <- predict(tree.pruned, df_test)
+treedf<-data.frame(
+  R2 = R2(tree_pred, df_test$SALE.PRICE),
+  RMSE = RMSE(tree_pred, df_test$SALE.PRICE),
+  MAE = MAE(tree_pred, df_test$SALE.PRICE)
+)
+
+treedf
+
+```
+I use the same test data set to evaluate the model performance and find out that the decision tree has a higher RMSE  than the regression model. Considering the higher R square value, I might say the Regression model performs better than the Decision tree when predicting this housing price.
+
+### Support Vector Machines
+
+
+Support vector machines (SVM) are supervised learning models with associated learning algorithms that analyze data used for classification and regression analysis. In this algorithm, each data item is plotted as a point in n-dimensional space (where n is the number of features), with the value of each feature being the value of a particular coordinate. Then, classification is performed by finding the hyper-plane that best differentiates the two classes.
+
+```{r, echo=FALSE}
+# Support Vector Machines
+
+svmModel <- svm(SALE.PRICE ~ ï..BOROUGH+BUILDING.CLASS.CATEGORY+BLOCK+LOT+RESIDENTIAL.UNITS+LAND..SQUARE.FEET+GROSS..SQUARE.FEET+YEAR.BUILT+MortgageRate+CovidDummy,data=df_train,kernel="radial", scale = FALSE)
+svmModel
+
+```
+
+```{r,echo=FALSE}
+svmPre1<-predict(svmModel,df_test)
+```
+
+
+```{r, echo=FALSE}
+svmdf<-data.frame(
+  R2 = R2(svmPre1, df_test$SALE.PRICE),
+  RMSE = RMSE(svmPre1, df_test$SALE.PRICE),
+  MAE = MAE(svmPre1, df_test$SALE.PRICE)
+)
+svmdf
+```
+Our data set contains about 108,013 records and those categorical variables have many levels. When I apply the training data to the support vector machines models, it took a long time to calculate the distance and differentiate classes. I use a radial kernel with cost 1, and the number of support vectors can reach 39,839.
+
+When I apply the model to the test data, the RMSE is lower than the other two models indicate that Support Vector Machine is better than Linea Regression and Decision Tree in predicting housing price.
+
+
+
+### Model Performance
+
+
+After running various Linear regression, decision trees, and support vector machines methods, we can take a look at the overall performance metrics for these three techniques on the housing price dataset. By creating a data frame to store all of our metrics, we can visualize the below outcomes:
+
+```{r, echo=FALSE}
+### Model Performance
+result<-rbind(lmdf,treedf,svmdf)
+result<-data.frame(result)
+rownames(result)<-c('Regression','DecisionTree','SVM')
+result
+```
+
+When comparing our three different techniques, overall, our support vector machine model seems to perform the best job in predicting the housing price. The RMSE is the square root of the variance of the residuals and Lower values of RMSE indicate better fit.  SVM has the lowest RMSE which means that it is more accurate to fit the new data to the model. At the same time, it also has the highest R2 than the other two models, therefore, it is selected to be the best model.
+
+
+
+## MODEL FORECASTING
+
+Time series forecasting is popular in predicting the sales price. It is a technique for predicting future events by analyzing past trends, based on the assumption that future trends will hold similar to historical trends. To better forecast the future price after 2021, I use three time series forecasting models to predict the sale price from 2022 to 2024. 
+
+The first model is Holt-Winter Simple Exponential smoothing with additive errors. I use an additive parameter for seasonal adjustment, so forecasting is very aggressive. Exponential smoothing models (ets)give out the most conservative forecasting because it bases on the previous average sales price. ARIMA models are among the most widely used time series forecasting model. It fits the training data slightly better than the ETS model. From the graph, we can see the estimated house price range from 1 to 1.25 million in 2022. 
+
+```{r, warning=FALSE, echo=FALSE}
+## MODEL FORECASTING
+
+lambda1<-BoxCox.lambda(house_ts)
+
+#Holt-Winters’Simple Exponential smoothing with additive errors
+Pre_holt<-hw(house_ts,seasonal="additive",h=25)
+
+
+#Forecasting with ETS models
+Pre_ets <- house_ts%>% 
+  stlm( s.window = 13, robust = TRUE, method = "ets" , lambda = lambda1,biasadj=FALSE) %>%
+  forecast( h = 25,lambda = lambda1)
+
+
+#Auto ARIMA model
+Pre_arima<-auto.arima(house_ts)%>%
+  forecast( h = 25)
+
+```
+
+
+```{r, echo=FALSE}
+#Housing Price Forecasting(2022-2024)
+autoplot(house_ts, start=2019)+autolayer(Pre_holt,series="Holt-Winters",PI=FALSE)+autolayer(Pre_ets,series="ets",PI=FALSE)+autolayer(Pre_arima,series="arima",PI=FALSE)+ggtitle('Housing Price Forecasting(2022-2024)')
+```
+
+
+
+# FINDINGS AND CONCLUSION
+
+This study examines the impact of the covid 19 pandemic on housing prices in New York City. Three years of housing sales data and the matching mortgage rate was analyzed and the relationship between them was investigated.
+
+Different from the previous pandemic, housing price has an extra 10% increase in 2021 after a dip in sales happened in the third and fourth quarter of 2020. From the seasonal trend graph, I can conclude that the price drop in 2020 is caused by the seasonal factor.
+
+The mortgage rate and Covid 19 dummy are two variables that I set up to evaluate the pandemic effects. The value of sale price is directly related to the mortgage rate and Covid 19 dummy, with a correlation coefficient of-0.063 and + 0.0668, respectively, which conclude that Covid 19 pandemic does have a positive influence on the housing price.
+
+I used three supervised learning models to predict the NYC housing price. Based on the model performance, the Support Vector Machine had the lowest RMSE and should be selected for the housing price prediction. While the data was trained, I evaluated the variable importance, and detect a 0 score for the mortgage rate and Covid 19 dummy. I can’t deny that Covid 19 pandemic might impact sale price but will point out a weak influence compared to other structural variables based on the decision tree model.
+
+My study also used time series models for forecasting and detected an upward trend while using the Holt-Winter Simple Exponential smoothing, ETS, and ARIMA methods. Pandemic cause mortgage rates to retreat and continue to push the house price in 2022.
+
+Due to the limit of my data set, which only covers 3 years of sales for residential houses, the prediction model might focus on the residential house only, instead of condos or other commercial use properties. Due to the training data coming from New York, it also limits its use in other cities which might have different structural characteristics.
+
+
+# REFERENCES
+
+ [1] Wong, G. (2008). Has SARS infected the property market? Evidence from Hong Kong. Journal of Urban Economics 63(1), 74–95.
+ 
+ [2]  Freeman, A. M. (1979). Hedonic Prices, Property Values and Measuring Environmental Benefits: A Survey of the Issues. The Scandinavian Journal of Economics, 81(2), 154–173. 
+ 
+ [3] Chin, T. L. and Chau, K. W. (2003). A critical review of literature on the hedonic price model, International Journal for Housing and Its Applications 27 (2), 145-165.
+ 
+ [4]Limsombunchai, V. (2004, June). House price prediction: hedonic price model vs. artificial neural network. In New Zealand agricultural and resource economics society conference (pp. 25-26).
+ 
+ [5] Reichert, A. K. (1990). The impact of interest rates, income, and employment upon regional housing prices. The Journal of Real Estate Finance and Economics, 3(4), 373-391.
+ 
+ [6]  Himmelberg, C., Mayer, C., & Sinai, T. (2005). Assessing high house prices: Bubbles, fundamentals and misperceptions. Journal of Economic Perspectives, 19(4), 67-92.
+ 
+ [7] Sutton, G. D. (2002). Explaining changes in house prices. BIS quarterly review, 32(1), 46-60.
+ 
+ [8]Wang, B. (2021). How Does COVID-19 Affect House Prices? A Cross-City Analysis. Journal of Risk and Financial Management, 14(2), 47.
+ 
+ [9] A. ABELLANA, J. A. N. I. C. E., & Devaraj, M. (2021, April). Hedonic Modeling for Predicting House Prices during CoVid19 Pandemic in the Philippines. In 2021 3rd International Conference on Management Science and Industrial Engineering (pp. 21-26).
+ 
+[10]  Zhao, Y. (2020). US housing market during COVID-19: aggregate and distributional evidence.
+
+
+# AAPENDIX
+
+```{r, ref.label=knitr::all_labels(),echo=TRUE,eval=FALSE}
+```
+
+
+
+
