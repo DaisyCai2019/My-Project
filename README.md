@@ -12,7 +12,7 @@ Shiny App: https://daisycai.shinyapps.io/HousePrediction/
 ###### •	Constructed a dashboard via Shiny App to enable users to track the collision data by boroughs and visualize the crash locations with the number of accidents when hovering over the map. 
 Project Link: https://rpubs.com/DaisyCai/Data608FinalProject
 
-Shinny App: https://daisycai.shinyapps.io/Data608_Final/
+Shiny App: https://daisycai.shinyapps.io/Data608_Final/
 
 Code: https://github.com/DaisyCai2019/My-Project/blob/main/Data608_Final%20Project.Rmd
 
