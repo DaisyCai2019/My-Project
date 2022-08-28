@@ -33,5 +33,5 @@ https://github.com/DaisyCai2019/My-Project/blob/main/Daisy_CitiBike.ipynb
 ### Ad Click Prediction
 https://github.com/DaisyCai2019/My-Project/blob/main/Advertisement.ipynb
 
-###P redict mobile app popularity
+### Predict mobile app popularity
 https://github.com/DaisyCai2019/My-Project/blob/main/app.ipynb
