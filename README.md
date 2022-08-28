@@ -25,3 +25,13 @@ Code: https://github.com/DaisyCai2019/My-Project/blob/main/Data608_Final%20Proje
 Project Link:https://rpubs.com/DaisyCai/Data622_FinalProject
 
 Code: https://github.com/DaisyCai2019/My-Project/blob/main/Data622_Group2_FinalProject.Rmd
+
+
+### Prediction of Citi Bike:
+https://github.com/DaisyCai2019/My-Project/blob/main/Daisy_CitiBike.ipynb
+
+### Ad Click Prediction
+https://github.com/DaisyCai2019/My-Project/blob/main/Advertisement.ipynb
+
+###P redict mobile app popularity
+https://github.com/DaisyCai2019/My-Project/blob/main/app.ipynb
