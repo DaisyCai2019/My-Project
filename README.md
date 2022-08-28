@@ -14,6 +14,8 @@ Project Link: https://rpubs.com/DaisyCai/Data608FinalProject
 
 Shiny App: https://daisycai.shinyapps.io/Data608_Final/
 
+Collision Map: https://github.com/DaisyCai2019/My-Project/blob/main/Motor_vehicle%20Collision%20Map.ipynb
+
 Code: https://github.com/DaisyCai2019/My-Project/blob/main/Data608_Final%20Project.Rmd
 
 
