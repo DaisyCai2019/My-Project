@@ -1,0 +1,253 @@
+---
+title: "Data608_Final Project"
+author: "Mengqin Cai"
+date: "12/1/2020"
+output:
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_collapsed: yes
+    toc_float: yes
+  pdf_document:
+        extra_dependencies: ["geometry", "multicol", "multirow"]
+theme: lumen
+number_sections: yes
+toc_depth: 3
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+We live in NYC and love this city which full of people from different counties. As a melting pot, NYC has 8.3 million population and it also has the longest commute time via car and public transit. Nobody want to talk about motor vehicle collision, but it does exist and make our daily long commute even longer when it happens. Today, I will dig into the NYC motor vehicle collision data and present some findings which might be useful for those regulation/policy makers. I will present some graphs which shows the trend of the collision and also point out the top 10 reasons why those accidents happen. 
+
+
+```{r cars}
+library("data.table")
+library(tidyverse)
+library(plyr)
+library(ggplot2)
+library(dplyr)
+library(shiny)
+library(rsconnect)
+library(Amelia)
+library(lubridate)
+library(leaflet)
+
+```
+
+# Data Source
+
+The dataset I use is from the New York City open data.https://data.cityofnewyork.us/Public-Safety/Motor-
+Vehicle-Collisions-Crashes/h9gi-nx95. The Motor Vehicle Collisions crash table contains details of different crash events, including crush date, time, borough, latitude, longitude, number of person killed/injured, contributing factor and vehicle type, etc. The dataset includes more than 1 million observations from August 2012 to October 2020 and miss data is inevitable.    
+
+
+# Importing Data
+
+GitHub can't upload a file more than 25M, so I use fread() to import the data from local disk.
+
+```{r}
+motor<-fread("Motor_Vehicle_Collisions_-_Crashes.csv", showProgress = FALSE, stringsAsFactors = FALSE)
+head(motor)
+```
+
+```{r}
+summary(motor)
+```
+
+From the summary, we notice that the variable LATITUDE and LONGITUDE have 20,5623, or 12%  missing data, which might affect our map when we plot in the data. 
+
+
+# Data Handling
+
+First, we need to separate the Crush Date column into three columns,  Year, Month, and Day, which might help our following analysis. 
+```{r}
+#Format the date and Separate it into three columns
+motor <- separate(motor, 1, c("Month", "Day","Year"))
+
+```
+
+Drop all the rows which don't have borough information.
+```{r}
+motor2<-motor %>%
+       filter(BOROUGH!="")
+```
+
+
+# Data Analysis
+
+
+## Collision by Borough over Years
+
+
+```{r}
+borough<-motor2 %>%
+         select(Year, BOROUGH)%>%
+         group_by(Year,BOROUGH)%>%
+         filter(Year > '2012')%>%
+         count
+borough
+```
+
+```{r}
+ggplot(borough, aes(x = Year, y = freq,group=BOROUGH,colour=BOROUGH)) +geom_point()+geom_line()+
+  labs(x = "Year", y = "Number of Motor vehicle collision", 
+              title = "Collision by Borough over Years")
+```
+The graph indicates Brooklyn has the highest collision number and Staten Island has the lowest number. From year 2013 to 2020,  there is a decrease collision number for all boroughs. Among this five boroughs, Manhattan's collision number decrease sharply since year 2015. 
+
+
+## Total Collision number
+
+What is the collision rate in NYC from 2013 to 2020? 
+```{r}
+
+YearNumber<-motor %>%
+          select(Year)%>%
+          filter(Year > '2012' )%>%
+          group_by(Year)%>%
+          count()
+        
+YearNumber
+
+```
+
+```{r}
+
+ggplot(YearNumber, aes(x = Year, y = freq,group=1)) +geom_point()+geom_line()+
+  labs(x = "Year", y = "Number of Motor vehicle collision", 
+              title = "Total Motor vehicle collision change from 2013 to 2019")
+
+```
+Apparently, total collision number in NYC increase sharply from 2013 to 2016. This number don't have a lot of change during 2016 to 2018, but drop suddenly in 2019 because of Covid19.
+
+
+
+## Collisions by Month
+
+
+```{r}
+MonthNumber<-motor %>%
+          filter(Year > '2012')%>%
+          select(Month)%>%
+          group_by(Month)%>%
+          count()
+        
+MonthNumber
+
+```
+
+```{r}
+ggplot(MonthNumber, aes(x=Month, y=freq)) +
+    geom_bar(stat="identity", position=position_dodge(), colour="red", width = 0.9) +
+    ggtitle("Motor Vehicle Collisions by Month") +
+    xlab("Month") + ylab("Number") +geom_text(aes(label = freq), vjust = 1.3, colour = "white")
+
+```
+
+May, June and October has the highest collision number. New York has a long winter and People start joining outside activities in May and June. 
+
+
+## Collisions by Hour
+
+```{r}
+#separate the crash time to Hour and Min
+time <- separate(motor, 'CRASH TIME', c("Hour", "min"))
+head(time)
+```
+
+```{r}
+    
+
+TimeNumber<-time %>%
+          select(Hour)%>%
+          group_by(Hour)%>%
+          arrange(Hour)%>%
+          count()
+
+# Change the data type of Hour to number and then sort the number 
+TimeNumber$Hour<-as.integer(as.character(TimeNumber$Hour))
+TimeNumber<-TimeNumber%>%
+            arrange(Hour)
+        
+TimeNumber
+```
+
+
+```{r}
+ggplot(TimeNumber, aes(x = Hour, y = freq,group=1)) +geom_point()+geom_line()+
+  labs(x = "Hour", y = "Number of Motor vehicle collision", 
+              title = "Collision by Hour")
+```
+
+The peak time has the highest collision number, especially during 4PM to 6PM. 3AM has the lowest collision rate for a whole day.
+
+## Causes of Motor Vehicle Collisions
+
+```{r}
+reason<-motor %>%
+          select('CONTRIBUTING FACTOR VEHICLE 1')%>%
+          group_by('CONTRIBUTING FACTOR VEHICLE 1')%>%
+          filter( 'CONTRIBUTING FACTOR VEHICLE 1'!="NA")%>%
+          count
+
+reason_count <-count(reason, "CONTRIBUTING.FACTOR.VEHICLE.1")
+reason_count<-reason_count[order(reason_count$freq, decreasing = T),]
+reason_count
+
+```
+
+The top Contributing factor is Unspecified and it is not a real reason.  I will drop Unspecified reason and Choose the other top 10 factors. 
+
+```{r}
+#Drop Unspecified reason
+reason_count<-reason_count%>%
+              filter(freq>=33844 & freq<624121)
+```
+
+```{r}
+ggplot(reason_count, aes(reorder(CONTRIBUTING.FACTOR.VEHICLE.1,freq), y=freq,fill=CONTRIBUTING.FACTOR.VEHICLE.1)) +
+    geom_bar(stat="identity", position=position_dodge(), colour="black", width = 0.5) +coord_flip()+
+    ggtitle("Causes of Motor Vehicle Collisions") +
+    xlab("Factor") + ylab("Number")
+```
+
+There are many reasons for the accidents. Driver inattention/Distraction is the #1 reason for the accident during those years. Failure to Yield Right of way and Following too closely are the other two reasons for accidents.Drivers need to pay more attention behind the wheel.
+
+
+## Map
+
+Using all the latitude and longitude data, I first create a map to mark all the location of the collisions. You can check the code and map by clicking this link.
+
+https://github.com/DaisyCai2019/Data608/blob/master/Final%20Project/Motor_vehicle%20Collision%20Map.ipynb
+
+```{r}
+knitr::include_graphics("Map.png")
+
+```
+
+
+From the map, we notice that Manhattan, Bronx and north side of Queens have more collisions than other areas. We also find out some interesting yellow spots along the sea.
+
+## Shiny APP
+
+Shiny App shows the collision data by Borough and also the collision location by year(2015-2020).  
+
+https://daisycai.shinyapps.io/Data608_Final/
+
+
+# Conclusion
+
+Motor Vehicle collision is a serious issue for years. From my analysis, we are so happy to see the number gradually go down since 2018. As the top 10 collision reason suggest, drivers need to be more careful behind the wheel and always yield the right of way. I hope all those safe measures will sharply reduce those serious collisions and make our roads safer. For people who want to go out for outdoor activities, my suggestion is always avoid the peak time.      
+
+
+
+
+
+
+
+
+
+
+
+
